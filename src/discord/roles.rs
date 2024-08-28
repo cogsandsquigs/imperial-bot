@@ -1,6 +1,42 @@
+use crate::db::{get_servers_with_verified_roles, get_verified_role, is_verified, models::Server};
 use poise::serenity_prelude::{CacheHttp, Error, Guild, GuildId, RoleId, UserId};
 
-use crate::db::{get_servers_with_verified_roles, models::Server};
+/// Verify all verified users on a single server.
+pub async fn set_verified_role_for_verified_on_single_server<C: CacheHttp>(
+    ctx: &C,
+    guild_id: GuildId,
+) -> Result<(), Error> {
+    // Get the role id
+    let role_id = if let Some(role_id) = get_verified_role(guild_id)
+        .await
+        .expect("Error getting role")
+    // TODO: Better error handling
+    {
+        role_id
+    } else {
+        return Ok(());
+    };
+
+    let guild = Guild::get(ctx.http(), guild_id)
+        .await
+        .expect("Error getting guild"); // TODO: Better error handling
+
+    let mut guild_members = guild
+        .members(ctx.http(), None, None)
+        .await
+        .expect("Error getting members"); // TODO: Better error handling
+
+    for member in guild_members.iter_mut() {
+        if is_verified(member.user.id).await {
+            member
+                .add_role(ctx.http(), role_id)
+                .await
+                .expect("Error adding role to user"); // TODO: Better error handling
+        }
+    }
+
+    Ok(())
+}
 
 /// Verify a user on all servers the user is on.
 pub async fn verify_on_all_servers<C: CacheHttp>(ctx: &C, user_id: UserId) -> Result<(), Error> {

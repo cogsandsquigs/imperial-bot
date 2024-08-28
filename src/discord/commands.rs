@@ -1,4 +1,7 @@
-use super::{roles::verify_on_all_servers, Context, Error};
+use super::{
+    roles::{set_verified_role_for_verified_on_single_server, verify_on_all_servers},
+    Context, Error,
+};
 use crate::db::models::*;
 use crate::db::{
     clear_otps, create_user, email_exists, insert_otp, is_verified, otp_exists_for_user,
@@ -154,6 +157,10 @@ pub async fn set_verified_role(
     set_verified_role_db(ctx.guild_id().unwrap(), role.id)
         .await
         .unwrap();
+
+    set_verified_role_for_verified_on_single_server(&ctx, ctx.guild_id().unwrap())
+        .await
+        .expect("Error setting verified role"); // TODO: Better error handling
 
     ctx.say(format!("Verified role set to `{}`!", role.name))
         .await?;

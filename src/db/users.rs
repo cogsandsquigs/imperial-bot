@@ -1,6 +1,7 @@
 use super::models::*;
 use super::{schema, PG_CONNECTION};
 use diesel::prelude::*;
+use diesel::result::Error;
 use poise::serenity_prelude as serenity;
 use serenity::UserId;
 use std::ops::DerefMut;
@@ -103,4 +104,12 @@ pub async fn clear_otps(user_id: UserId) {
         .set(otps.eq::<Vec<i32>>(vec![]))
         .execute(PG_CONNECTION.lock().await.deref_mut())
         .expect("Error clearing user OTPs"); // TODO: Better error handling
+}
+
+/// Gets all the verified users.
+pub async fn get_verified() -> Result<Vec<User>, Error> {
+    use schema::users::dsl::*;
+    users
+        .filter(state.eq(UserState::Verified))
+        .load(PG_CONNECTION.lock().await.deref_mut())
 }

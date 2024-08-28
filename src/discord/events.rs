@@ -22,6 +22,8 @@ pub async fn event_handler(
         }
 
         FullEvent::GuildMemberAddition { new_member } => {
+            println!("New member joined: {:?}", new_member);
+
             let user = &new_member.user;
 
             // If the user exists, do not insert a new user.
