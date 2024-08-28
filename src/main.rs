@@ -1,5 +1,6 @@
 mod db;
 mod discord;
+mod mail;
 
 use dotenv::dotenv;
 

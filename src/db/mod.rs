@@ -21,6 +21,7 @@ pub static PG_CONNECTION: LazyLock<Mutex<PgConnection>> =
 // NOTE: If using `dotenv`, run `dotenv::dotenv().ok();` before calling this function.
 fn establish_connection() -> PgConnection {
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    println!("Connecting to {}", database_url);
     PgConnection::establish(&database_url)
         .unwrap_or_else(|_| panic!("Error connecting to {}", database_url))
 }
@@ -72,6 +73,19 @@ pub async fn create_user(user_id: UserId) -> User {
         .values(&new_user)
         .get_result(PG_CONNECTION.lock().await.deref_mut())
         .expect("Error saving new user") // TODO: Better error handling
+}
+
+/// Check if this email is already in use by a VERIFIED account.
+pub async fn email_exists(email: &str) -> bool {
+    use schema::users::dsl::*;
+    users
+        .filter(
+            state
+                .eq(UserState::Verified)
+                .and(imperial_email.eq(Some(email))),
+        )
+        .first::<User>(PG_CONNECTION.lock().await.deref_mut())
+        .is_ok() // TODO: Better error handling
 }
 
 /// Sets the user's imperial email.

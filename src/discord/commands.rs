@@ -1,10 +1,16 @@
 use super::{Context, Error};
 use crate::db::{
-    clear_otps, create_user, insert_otp, is_verified, otp_exists_for_user, set_imperial_email,
-    set_user_state,
+    clear_otps, create_user, email_exists, insert_otp, is_verified, otp_exists_for_user,
+    set_imperial_email, set_user_state,
 };
 use crate::db::{models::*, user_exists};
+use crate::mail::MAILER;
+use lettre::message::header::ContentType;
+use lettre::{Message, Transport};
 use poise::serenity_prelude::{self as serenity, CreateMessage};
+use rand::Rng;
+use std::env;
+use std::ops::DerefMut;
 
 /// Starts the process of verifying a user.
 #[poise::command(slash_command)]
@@ -30,8 +36,6 @@ pub async fn verify(
         ctx.say("User verification process started!").await?;
     }
 
-    // TODO: Start verification process
-
     set_user_state(user.id, UserState::QueryingEmail).await;
 
     // Ask for their Imperial email.
@@ -39,8 +43,8 @@ pub async fn verify(
         ctx,
         CreateMessage::new().content(
             r"Hello! It looks like you've joined a server for Imperial students. 
-                This server requires an extra step of verification before you can join. 
-                Please provide your Imperial email via the `/set_email` command.",
+            This server requires an extra step of verification before you can join. 
+            Please provide your Imperial email via the `/set_email` command.",
         ),
     )
     .await?;
@@ -68,20 +72,42 @@ pub async fn set_email(
     }
 
     // Make sure the email is unique.
-    // TODO: Check if the email is unique in the database
+    if email_exists(email).await {
+        ctx.say("Sorry, the email you provided is already in use. Please provide a unique Imperial email.")
+            .await?;
+        return Ok(());
+    }
 
-    // TODO: Generate an OTP randomly from 100000 to 99999999 (6-8 digits)
-    let otp = 123456;
+    let otp = rand::thread_rng().gen_range(100000..=99999999);
 
     insert_otp(user.id, otp).await;
 
-    // TODO: Email the user an OTP
+    let email_msg = Message::builder()
+        .from(
+            env::var("SMTP_FROM")
+                .expect("SMTP_FROM is required!")
+                .parse()
+                .unwrap(),
+        )
+        .to(email.parse().unwrap()) // TODO: Error handling
+        .subject("Verify your Imperial Email")
+        .header(ContentType::TEXT_PLAIN)
+        .body(format!(
+            "Hello, {}! Your secret password is {}",
+            user.name, otp
+        ))
+        .unwrap();
+
+    MAILER.lock().unwrap().deref_mut().send(&email_msg).unwrap();
 
     set_user_state(user.id, UserState::QueryingOTP).await;
     set_imperial_email(user.id, email.to_string()).await;
 
-    ctx.say("Thank you! Now, run the /otp command with the secret passcode sent to your email.")
-        .await?;
+    ctx.say(
+        r"Thank you!
+        Now, run the `/otp` command with the secret passcode sent to your email.",
+    )
+    .await?;
 
     Ok(())
 }
