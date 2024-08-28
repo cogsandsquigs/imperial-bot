@@ -1,4 +1,4 @@
-use super::schema;
+use crate::db::schema;
 use diesel::prelude::*;
 use diesel_derive_enum::DbEnum;
 
@@ -21,7 +21,7 @@ pub struct NewUser {
 
 #[repr(i32)]
 #[derive(Debug, Clone, Copy, DbEnum, PartialEq, Eq)]
-#[ExistingTypePath = "super::schema::sql_types::UserState"]
+#[ExistingTypePath = "crate::db::schema::sql_types::UserState"]
 pub enum UserState {
     Unverified = 0,
     QueryingEmail = 1,

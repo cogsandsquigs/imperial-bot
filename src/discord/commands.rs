@@ -1,9 +1,9 @@
-use super::{Context, Error};
+use super::{roles::verify_on_all_servers, Context, Error};
+use crate::db::models::*;
 use crate::db::{
     clear_otps, create_user, email_exists, insert_otp, is_verified, otp_exists_for_user,
-    set_imperial_email, set_user_state,
+    set_imperial_email, set_user_state, set_verified_role as set_verified_role_db, user_exists,
 };
-use crate::db::{models::*, user_exists};
 use crate::mail::MAILER;
 use lettre::message::header::ContentType;
 use lettre::{Message, Transport};
@@ -13,7 +13,7 @@ use std::env;
 use std::ops::DerefMut;
 
 /// Starts the process of verifying a user.
-#[poise::command(slash_command)]
+#[poise::command(slash_command, guild_only)]
 pub async fn verify(
     ctx: Context<'_>,
     #[description = "User to verify"] user: Option<serenity::User>,
@@ -53,7 +53,7 @@ pub async fn verify(
 }
 
 /// Sets your imperial email.
-#[poise::command(slash_command)]
+#[poise::command(slash_command, dm_only)]
 pub async fn set_email(
     ctx: Context<'_>,
     #[description = "Email to set"] email: String,
@@ -113,7 +113,7 @@ pub async fn set_email(
 }
 
 /// Verifies your email with your secret passcode.
-#[poise::command(slash_command)]
+#[poise::command(slash_command, dm_only)]
 pub async fn otp(
     ctx: Context<'_>,
     #[description = "The secret passcode to set"] otp: i32,
@@ -135,11 +135,28 @@ pub async fn otp(
     if is_verified {
         clear_otps(user.id).await;
         set_user_state(user.id, UserState::Verified).await;
+        verify_on_all_servers(&ctx, user.id).await?;
         ctx.say("Congratulations! You've been verified!").await?;
     } else {
         // Keep them in the same state, so they can try again.
         ctx.say("Sorry, the secret passcode you provided is incorrect. Please provide the correct secret passcode.").await?;
     }
+
+    Ok(())
+}
+
+/// Sets the server's verified user role.
+#[poise::command(slash_command, guild_only, required_permissions = "ADMINISTRATOR")]
+pub async fn set_verified_role(
+    ctx: Context<'_>,
+    #[description = "Role to set"] role: serenity::Role,
+) -> Result<(), Error> {
+    set_verified_role_db(ctx.guild_id().unwrap(), role.id)
+        .await
+        .unwrap();
+
+    ctx.say(format!("Verified role set to `{}`!", role.name))
+        .await?;
 
     Ok(())
 }

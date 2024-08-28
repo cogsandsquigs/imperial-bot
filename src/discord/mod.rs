@@ -1,5 +1,6 @@
 mod commands;
 mod events;
+mod roles;
 
 use events::event_handler;
 use poise::serenity_prelude as serenity;
@@ -19,7 +20,12 @@ pub async fn run() {
 
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
-            commands: vec![commands::verify(), commands::set_email(), commands::otp()],
+            commands: vec![
+                commands::verify(),
+                commands::set_email(),
+                commands::otp(),
+                commands::set_verified_role(),
+            ],
             event_handler: |ctx, event, framework, data| {
                 Box::pin(event_handler(ctx, event, framework, data))
             },
