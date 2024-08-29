@@ -1,21 +1,36 @@
+use super::{Data, Error};
 use crate::db::create_user;
 use crate::db::get_verified_role;
 use crate::db::is_verified;
 use crate::db::models::UserState;
 use crate::db::set_user_state;
 use crate::db::user_exists;
-
-use super::{Data, Error};
+use crate::errors::Result;
 use poise::serenity_prelude as serenity;
 use poise::FrameworkContext;
 use serenity::{Context, CreateMessage, FullEvent};
 
-pub async fn event_handler(
+pub async fn event_handler_wrapper(
     ctx: &Context,
     event: &FullEvent,
     _framework: FrameworkContext<'_, Data, Error>,
     _data: &Data,
-) -> Result<(), Error> {
+) -> std::result::Result<(), Error> {
+    let result = event_handler(ctx, event, _framework, _data).await;
+
+    if let Err(err) = result {
+        eprintln!("Error in event handler: {:?}", err);
+    }
+
+    Ok(())
+}
+
+async fn event_handler(
+    ctx: &Context,
+    event: &FullEvent,
+    _framework: FrameworkContext<'_, Data, Error>,
+    _data: &Data,
+) -> Result<()> {
     match event {
         FullEvent::Ready { data_about_bot, .. } => {
             println!("Logged in as {}", data_about_bot.user.name);
@@ -33,10 +48,7 @@ pub async fn event_handler(
                 if is_verified(user.id).await {
                     let verified_role = get_verified_role(new_member.guild_id).await?;
                     if let Some(role_id) = verified_role {
-                        new_member
-                            .add_role(&ctx.http, role_id)
-                            .await
-                            .expect("Error adding role to user");
+                        new_member.add_role(&ctx.http, role_id).await?;
                     }
 
                     return Ok(());

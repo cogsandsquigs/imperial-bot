@@ -2,7 +2,7 @@ mod commands;
 mod events;
 mod roles;
 
-use events::event_handler;
+use events::event_handler_wrapper;
 use poise::serenity_prelude as serenity;
 use serenity::GatewayIntents;
 use std::env;
@@ -15,8 +15,9 @@ type Context<'a> = poise::Context<'a, Data, Error>;
 pub async fn run() {
     let token = env::var("DISCORD_TOKEN").expect("missing DISCORD_TOKEN");
     let intents = GatewayIntents::non_privileged()
-        | GatewayIntents::DIRECT_MESSAGES
-        | GatewayIntents::DIRECT_MESSAGE_REACTIONS;
+        | GatewayIntents::DIRECT_MESSAGES // Needed for DM commands
+        | GatewayIntents::DIRECT_MESSAGE_REACTIONS
+        | GatewayIntents::GUILD_MEMBERS; // Needed for GuildMemberAddition
 
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
@@ -27,7 +28,7 @@ pub async fn run() {
                 commands::set_verified_role(),
             ],
             event_handler: |ctx, event, framework, data| {
-                Box::pin(event_handler(ctx, event, framework, data))
+                Box::pin(event_handler_wrapper(ctx, event, framework, data))
             },
             ..Default::default()
         })

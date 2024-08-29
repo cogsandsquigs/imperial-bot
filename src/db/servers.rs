@@ -1,13 +1,13 @@
 use crate::db::models::*;
 use crate::db::{schema, PG_CONNECTION};
+use crate::errors::{Error, Result};
 use diesel::prelude::*;
-use diesel::result::Error;
 use poise::serenity_prelude as serenity;
 use serenity::{GuildId, RoleId};
 use std::ops::DerefMut;
 
 /// Check if a server exists in the database.
-pub async fn server_exists(guild_id: GuildId) -> bool {
+pub async fn server_exists(guild_id: GuildId) -> Result<bool> {
     use schema::servers::dsl::*;
 
     match servers
@@ -16,17 +16,16 @@ pub async fn server_exists(guild_id: GuildId) -> bool {
     {
         Ok(_) => Ok(true),
         Err(diesel::result::Error::NotFound) => Ok(false),
-        Err(err) => Err(err),
+        Err(err) => Err(Error::Db(err)),
     }
-    .expect("Error checking if server exists") // TODO: Better error handling
 }
 
 /// Set the verified role for the server.
-pub async fn set_verified_role(guild_id: GuildId, role_id: RoleId) -> Result<(), Error> {
+pub async fn set_verified_role(guild_id: GuildId, role_id: RoleId) -> Result<()> {
     use schema::servers::dsl::*;
 
     // Check if the server exists.
-    if !server_exists(guild_id).await {
+    if !server_exists(guild_id).await? {
         // If it doesn't exist, create it.
         diesel::insert_into(servers)
             .values(&NewServer {
@@ -43,11 +42,11 @@ pub async fn set_verified_role(guild_id: GuildId, role_id: RoleId) -> Result<(),
 }
 
 /// Get the verified role for the server.
-pub async fn get_verified_role(guild_id: GuildId) -> Result<Option<RoleId>, Error> {
+pub async fn get_verified_role(guild_id: GuildId) -> Result<Option<RoleId>> {
     use schema::servers::dsl::*;
 
     // Check if the server exists.
-    if !server_exists(guild_id).await {
+    if !server_exists(guild_id).await? {
         // If it doesn't exist, return None.
         return Ok(None);
     }
@@ -61,10 +60,12 @@ pub async fn get_verified_role(guild_id: GuildId) -> Result<Option<RoleId>, Erro
 }
 
 /// Get all the servers with verified roles.
-pub async fn get_servers_with_verified_roles() -> Result<Vec<Server>, Error> {
+pub async fn get_servers_with_verified_roles() -> Result<Vec<Server>> {
     use schema::servers::dsl::*;
 
-    servers
+    let res = servers
         .filter(verified_role_id.is_not_null())
-        .load(PG_CONNECTION.lock().await.deref_mut())
+        .load(PG_CONNECTION.lock().await.deref_mut())?;
+
+    Ok(res)
 }

@@ -855,6 +855,7 @@ dependencies = [
  "lettre",
  "poise",
  "rand",
+ "thiserror",
  "tokio",
 ]
 
