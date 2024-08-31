@@ -42,10 +42,10 @@ async fn event_handler(
             let user = &new_member.user;
 
             // If the user exists, do not insert a new user.
-            if user_exists(user.id).await {
+            if user_exists(user.id).await? {
                 // If a user with the same discord ID is verified, do not insert a new user.
                 // Instead, add their roles.
-                if is_verified(user.id).await {
+                if is_verified(user.id).await? {
                     let verified_role = get_verified_role(new_member.guild_id).await?;
                     if let Some(role_id) = verified_role {
                         new_member.add_role(&ctx.http, role_id).await?;
@@ -56,7 +56,7 @@ async fn event_handler(
             }
             // Otherwise, insert a new user.
             else {
-                create_user(user.id).await;
+                create_user(user.id).await?;
             }
 
             set_user_state(user.id, UserState::QueryingEmail).await;

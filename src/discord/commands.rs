@@ -24,9 +24,15 @@ pub async fn verify(
     let user = user.unwrap_or_else(|| ctx.author().clone());
 
     // If the user exists, do not insert a new user.
-    if user_exists(user.id).await {
+    if user_exists(user.id)
+        .await
+        .expect("Error checking if user exists")
+    {
         // If a user with the same discord ID is verified, do not insert a new user.
-        if is_verified(user.id).await {
+        if is_verified(user.id)
+            .await
+            .expect("Error checking if user is verified")
+        {
             ctx.say("User is already verified!").await?;
             return Ok(());
         }
@@ -35,11 +41,13 @@ pub async fn verify(
     }
     // Otherwise, insert a new user.
     else {
-        create_user(user.id).await;
+        create_user(user.id).await.expect("Error creating user");
         ctx.say("User verification process started!").await?;
     }
 
-    set_user_state(user.id, UserState::QueryingEmail).await;
+    set_user_state(user.id, UserState::QueryingEmail)
+        .await
+        .expect("Error setting user state");
 
     // Ask for their Imperial email.
     user.dm(
@@ -75,7 +83,10 @@ pub async fn set_email(
     }
 
     // Make sure the email is unique.
-    if email_exists(email).await {
+    if email_exists(email)
+        .await
+        .expect("Error checking if email exists")
+    {
         ctx.say("Sorry, the email you provided is already in use. Please provide a unique Imperial email.")
             .await?;
         return Ok(());
@@ -83,7 +94,7 @@ pub async fn set_email(
 
     let otp = rand::thread_rng().gen_range(100000..=99999999);
 
-    insert_otp(user.id, otp).await;
+    insert_otp(user.id, otp).await.expect("Error inserting OTP");
 
     let email_msg = Message::builder()
         .from(
@@ -103,8 +114,12 @@ pub async fn set_email(
 
     MAILER.lock().unwrap().deref_mut().send(&email_msg).unwrap();
 
-    set_user_state(user.id, UserState::QueryingOTP).await;
-    set_imperial_email(user.id, email.to_string()).await;
+    set_user_state(user.id, UserState::QueryingOTP)
+        .await
+        .expect("Error setting user state");
+    set_imperial_email(user.id, email.to_string())
+        .await
+        .expect("Error setting imperial email");
 
     ctx.say(
         r"Thank you!
@@ -133,11 +148,15 @@ pub async fn otp(
     };
 
     // Check if the OTP is correct.
-    let is_verified = otp_exists_for_user(user.id, otp).await;
 
-    if is_verified {
-        clear_otps(user.id).await;
-        set_user_state(user.id, UserState::Verified).await;
+    if otp_exists_for_user(user.id, otp)
+        .await
+        .expect("Error checking if OTP exists")
+    {
+        clear_otps(user.id).await.expect("Error clearing OTPs");
+        set_user_state(user.id, UserState::Verified)
+            .await
+            .expect("Error setting user state");
         verify_on_all_servers(&ctx, user.id).await?;
         ctx.say("Congratulations! You've been verified!").await?;
     } else {
