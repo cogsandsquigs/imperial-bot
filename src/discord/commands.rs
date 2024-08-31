@@ -10,6 +10,7 @@ use crate::db::{
 use crate::mail::MAILER;
 use lettre::message::header::ContentType;
 use lettre::{Message, Transport};
+use log::info;
 use poise::serenity_prelude::{self as serenity, CreateMessage};
 use rand::Rng;
 use std::env;
@@ -158,6 +159,9 @@ pub async fn otp(
             .await
             .expect("Error setting user state");
         verify_on_all_servers(&ctx, user.id).await?;
+
+        info!("Verified user {}", user.name);
+
         ctx.say("Congratulations! You've been verified!").await?;
     } else {
         // Keep them in the same state, so they can try again.

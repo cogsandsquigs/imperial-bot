@@ -133,6 +133,7 @@ pub async fn clear_otps(user_id: UserId) -> Result<()> {
     Ok(())
 }
 
+/*
 /// Gets all the verified users.
 pub async fn get_verified() -> Result<Vec<User>> {
     use schema::users::dsl::*;
@@ -143,3 +144,4 @@ pub async fn get_verified() -> Result<Vec<User>> {
 
     Ok(u)
 }
+*/

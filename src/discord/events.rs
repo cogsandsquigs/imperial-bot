@@ -6,6 +6,7 @@ use crate::db::models::UserState;
 use crate::db::set_user_state;
 use crate::db::user_exists;
 use crate::errors::Result;
+use log::info;
 use poise::serenity_prelude as serenity;
 use poise::FrameworkContext;
 use serenity::{Context, CreateMessage, FullEvent};
@@ -33,11 +34,15 @@ async fn event_handler(
 ) -> Result<()> {
     match event {
         FullEvent::Ready { data_about_bot, .. } => {
-            println!("Logged in as {}", data_about_bot.user.name);
+            info!("Logged in as {}", data_about_bot.user.name);
         }
 
         FullEvent::GuildMemberAddition { new_member } => {
-            println!("New member joined: {:?}", new_member);
+            info!(
+                "New member {} joined {}",
+                new_member.guild_id.name(ctx).unwrap_or("UNKNOWN".into()),
+                new_member.user.name
+            );
 
             let user = &new_member.user;
 
@@ -59,7 +64,7 @@ async fn event_handler(
                 create_user(user.id).await?;
             }
 
-            set_user_state(user.id, UserState::QueryingEmail).await;
+            set_user_state(user.id, UserState::QueryingEmail).await?;
 
             // Ask for their Imperial email.
             user.dm(

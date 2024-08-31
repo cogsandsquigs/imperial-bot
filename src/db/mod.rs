@@ -5,6 +5,7 @@ mod users;
 
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
+use log::debug;
 use std::env;
 use std::sync::LazyLock;
 use tokio::sync::Mutex;
@@ -22,7 +23,9 @@ pub static PG_CONNECTION: LazyLock<Mutex<PgConnection>> =
 // NOTE: If using `dotenv`, run `dotenv::dotenv().ok();` before calling this function.
 fn establish_connection() -> PgConnection {
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    println!("Connecting to {}", database_url);
+
+    debug!("Connecting to {}", database_url);
+
     PgConnection::establish(&database_url)
         .unwrap_or_else(|_| panic!("Error connecting to {}", database_url))
 }

@@ -1,4 +1,5 @@
 use lettre::{transport::smtp::authentication::Credentials, SmtpTransport};
+use log::debug;
 use std::{
     env,
     sync::{LazyLock, Mutex},
@@ -17,7 +18,7 @@ fn establish_smtp() -> SmtpTransport {
 
     let creds = Credentials::new(user, pass);
 
-    println!("Connecting to {}:{} with credentials", host, port);
+    debug!("Connecting to {}:{} with credentials", host, port);
 
     SmtpTransport::starttls_relay(&host)
         .unwrap_or_else(|_| panic!("Error connecting to {}:{} with credentials", host, port))
