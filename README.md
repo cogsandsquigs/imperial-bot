@@ -1,6 +1,7 @@
 # imperial-bot
 
-A discord bot for verifying that users are actually from Imperial College London.
+A discord bot for verifying that users are actually from Imperial College London. May also include additional features
+in the future.
 
 ## Running
 
