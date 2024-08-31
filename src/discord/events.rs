@@ -40,8 +40,8 @@ async fn event_handler(
         FullEvent::GuildMemberAddition { new_member } => {
             info!(
                 "New member {} joined {}",
+                new_member.user.name,
                 new_member.guild_id.name(ctx).unwrap_or("UNKNOWN".into()),
-                new_member.user.name
             );
 
             let user = &new_member.user;
