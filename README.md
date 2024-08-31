@@ -6,6 +6,9 @@ A discord bot for verifying that users are actually from Imperial College London
 
 Run either via using the included Dockerfile, or by compiling and running the program using `cargo`.
 
+> [!WARN]
+> The discord role for the bot must be _above_ the discord role for verified users!
+
 ## Configuration
 
 Configuration is done via environment variables. Environment variables can be set in the environment, _or_ can be set in
